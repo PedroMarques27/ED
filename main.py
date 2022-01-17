@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import zscore
 from sklearn import svm
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, plot_confusion_matrix, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import accuracy_score, plot_confusion_matrix, confusion_matrix, ConfusionMatrixDisplay, f1_score
 from sklearn.utils import resample
 from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.svm import SVC
@@ -78,7 +78,7 @@ def main():
     plot_confusion_matrix(clf, X_test, Y_test)
 '''
 
-
+''' 
 def main():
     train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
     test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
@@ -106,7 +106,7 @@ def main():
     yes = pd.concat([yes_train, yes_test])
     no = pd.concat([no_train, no_test])
 
-    _sample_size = int((yes.shape[0]*4)/5)
+    _sample_size = int((yes.shape[0]*3)/5)
 
     Yes_train = resample(yes, n_samples = _sample_size)
     No_train = resample(no, n_samples = _sample_size)
@@ -141,6 +141,63 @@ def main():
 
     print(f"Missing Values: {train.isna().sum().sum()}")
 
+    print(f1_score(pred_labels, Y_test,average = None))
+    cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+    disp.plot()
+
+    plt.show()
+    plot_confusion_matrix(clf, X_test, Y_test)
+'''
+
+'''#Undersampling
+def main():
+    train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
+    test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
+
+    cols = train.select_dtypes(include=[float, int]).columns
+
+    train_max = train.select_dtypes(include=[float, int]).max()
+    train_min = train.select_dtypes(include=[float, int]).min()
+    variance = (train_max - train_min)
+
+
+    dont_use_cols = [x for x in cols if variance[x] == 0]
+    train = train.drop(columns=dont_use_cols)
+    test = test.drop(columns=dont_use_cols)
+    train.drop_duplicates(keep=False, inplace=True)
+
+
+
+    yes_train = train.loc[train['Failure_status'] == 'yes']
+    no_train = train.loc[train['Failure_status'] == 'no']
+
+
+
+    _sample_size = (yes_train.shape[0])
+
+    No_train = resample(no_train, n_samples = _sample_size)
+    train = pd.concat([No_train, yes_train])
+
+
+    X_train = train.iloc[:, :train.shape[1]-1]
+    Y_train = train.iloc[:, train.shape[1]-1]
+    X_test = test.iloc[:, :test.shape[1]-1]
+    Y_test = test.iloc[:, test.shape[1]-1]
+
+
+
+
+
+    clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
+    clf.fit(X_train, Y_train)
+    pred_labels = clf.predict(X_test)
+    print(clf.score(X_test, Y_test))
+    # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
+
+    print(f"Missing Values: {train.isna().sum().sum()}")
+
+    print(f1_score(pred_labels, Y_test,average = None))
     cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
     disp.plot()
@@ -148,6 +205,62 @@ def main():
     plt.show()
     plot_confusion_matrix(clf, X_test, Y_test)
 
+'''
+
+#Oversampling
+def main():
+    train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
+    test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
+
+    cols = train.select_dtypes(include=[float, int]).columns
+
+    train_max = train.select_dtypes(include=[float, int]).max()
+    train_min = train.select_dtypes(include=[float, int]).min()
+    variance = (train_max - train_min)
+
+
+    dont_use_cols = [x for x in cols if variance[x] == 0]
+    train = train.drop(columns=dont_use_cols)
+    test = test.drop(columns=dont_use_cols)
+    train.drop_duplicates(keep=False, inplace=True)
+
+
+
+    yes_train = train.loc[train['Failure_status'] == 'yes']
+    no_train = train.loc[train['Failure_status'] == 'no']
+
+
+
+    _sample_size = (yes_train.shape[0])
+
+    No_train = resample(no_train, n_samples = _sample_size)
+    train = pd.concat([No_train, yes_train])
+
+
+    X_train = train.iloc[:, :train.shape[1]-1]
+    Y_train = train.iloc[:, train.shape[1]-1]
+    X_test = test.iloc[:, :test.shape[1]-1]
+    Y_test = test.iloc[:, test.shape[1]-1]
+
+
+
+
+
+    clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
+    clf.fit(X_train, Y_train)
+    pred_labels = clf.predict(X_test)
+    print(clf.score(X_test, Y_test))
+    # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
+
+    print(f"Missing Values: {train.isna().sum().sum()}")
+
+    print(f1_score(pred_labels, Y_test,average = None))
+    cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+    disp.plot()
+
+    plt.show()
+    plot_confusion_matrix(clf, X_test, Y_test)
 
 
 

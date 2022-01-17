@@ -315,7 +315,7 @@ def main():
     train = train.drop(columns=dont_use_cols)
     test = test.drop(columns=dont_use_cols)
     train.drop_duplicates(keep=False, inplace=True)
-
+    print(len(dont_use_cols))
 
 
 
@@ -339,7 +339,8 @@ def main():
     pred_labels = cross_val_predict(clf, X,Y, cv=5)
     print(f1_score(Y, pred_labels, average=None))
     # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
-    print(confusion_matrix(Y, pred_labels))
+    cm = (confusion_matrix(Y, pred_labels))
+    plot_confusion_matrix(cm)
 
 if __name__ == '__main__':
     main()

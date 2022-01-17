@@ -1,12 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from imblearn.over_sampling import SMOTE, ADASYN
+from imblearn.under_sampling import RandomUnderSampler
 from scipy.stats import zscore
 from sklearn import svm
 from sklearn.decomposition import PCA
-from sklearn.metrics import accuracy_score, plot_confusion_matrix, confusion_matrix, ConfusionMatrixDisplay, f1_score
+from sklearn.metrics import accuracy_score, plot_confusion_matrix, confusion_matrix, ConfusionMatrixDisplay, f1_score, \
+    roc_auc_score
 from sklearn.utils import resample
-from sklearn.model_selection import GridSearchCV, cross_val_score
+from sklearn.model_selection import GridSearchCV, cross_val_score, cross_val_predict
 from sklearn.svm import SVC
 '''
 
@@ -149,8 +151,58 @@ def main():
     plt.show()
     plot_confusion_matrix(clf, X_test, Y_test)
 '''
+'''
+#Undersampling
+def main():
+    train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
+    test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
 
-'''#Undersampling
+    cols = train.select_dtypes(include=[float, int]).columns
+
+    train_max = train.select_dtypes(include=[float, int]).max()
+    train_min = train.select_dtypes(include=[float, int]).min()
+    variance = (train_max - train_min)
+
+
+    dont_use_cols = [x for x in cols if variance[x] == 0]
+    train = train.drop(columns=dont_use_cols)
+    test = test.drop(columns=dont_use_cols)
+    train.drop_duplicates(keep=False, inplace=True)
+
+    X_train = train.iloc[:, :train.shape[1]-1]
+    Y_train = train.iloc[:, train.shape[1]-1]
+    X_test = test.iloc[:, :test.shape[1]-1]
+    Y_test = test.iloc[:, test.shape[1]-1]
+
+    rus = RandomUnderSampler(random_state=42, replacement=True)  # fit predictor and target variable
+    X_train, Y_train = rus.fit_resample(X_train, Y_train)
+
+    print(Y_train.value_counts())
+
+
+
+
+
+
+
+    clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
+    clf.fit(X_train, Y_train)
+    pred_labels = clf.predict(X_test)
+    print(clf.score(X_test, Y_test))
+    # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
+
+
+    print(f1_score(pred_labels,Y_test, pos_label="yes"))
+    cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
+    disp.plot()
+
+    plt.show()
+    plot_confusion_matrix(clf, X_test, Y_test)
+
+'''
+'''
+#SMOTE
 def main():
     train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
     test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
@@ -169,22 +221,21 @@ def main():
 
 
 
+
+
+
+
     yes_train = train.loc[train['Failure_status'] == 'yes']
     no_train = train.loc[train['Failure_status'] == 'no']
-
-
-
-    _sample_size = (yes_train.shape[0])
-
-    No_train = resample(no_train, n_samples = _sample_size)
-    train = pd.concat([No_train, yes_train])
-
+    print(yes_train.shape, no_train.shape)
 
     X_train = train.iloc[:, :train.shape[1]-1]
     Y_train = train.iloc[:, train.shape[1]-1]
     X_test = test.iloc[:, :test.shape[1]-1]
     Y_test = test.iloc[:, test.shape[1]-1]
 
+    X_train, Y_train = SMOTE(sampling_strategy="minority").fit_resample(X_train, Y_train)
+    print(Y_train.value_counts())
 
 
 
@@ -195,7 +246,6 @@ def main():
     print(clf.score(X_test, Y_test))
     # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
 
-    print(f"Missing Values: {train.isna().sum().sum()}")
 
     print(f1_score(pred_labels, Y_test,average = None))
     cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
@@ -206,8 +256,8 @@ def main():
     plot_confusion_matrix(clf, X_test, Y_test)
 
 '''
-
-#Oversampling
+'''
+#Cross Validation and Undersampling
 def main():
     train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
     test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
@@ -228,41 +278,68 @@ def main():
 
     yes_train = train.loc[train['Failure_status'] == 'yes']
     no_train = train.loc[train['Failure_status'] == 'no']
+    print(yes_train.shape, no_train.shape)
+    df = pd.concat([train, test])
+    X = df.iloc[:, :df.shape[1]-1]
+    Y = df.iloc[:, df.shape[1]-1]
 
+    rus = RandomUnderSampler(random_state=42, replacement=True)  # fit predictor and target variable
+    X, Y = rus.fit_resample(X, Y)
 
-
-    _sample_size = (yes_train.shape[0])
-
-    No_train = resample(no_train, n_samples = _sample_size)
-    train = pd.concat([No_train, yes_train])
-
-
-    X_train = train.iloc[:, :train.shape[1]-1]
-    Y_train = train.iloc[:, train.shape[1]-1]
-    X_test = test.iloc[:, :test.shape[1]-1]
-    Y_test = test.iloc[:, test.shape[1]-1]
-
+    print(Y.value_counts())
 
 
 
 
     clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
-    clf.fit(X_train, Y_train)
-    pred_labels = clf.predict(X_test)
-    print(clf.score(X_test, Y_test))
+
+    pred_labels = cross_val_predict(clf, X,Y, cv=5)
+    print(f1_score(Y, pred_labels, average=None))
     # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
 
-    print(f"Missing Values: {train.isna().sum().sum()}")
+'''
 
-    print(f1_score(pred_labels, Y_test,average = None))
-    cm = confusion_matrix(Y_test, pred_labels, labels=clf.classes_)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=clf.classes_)
-    disp.plot()
+#Cross Validation and Undersampling
+def main():
+    train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
+    test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
 
-    plt.show()
-    plot_confusion_matrix(clf, X_test, Y_test)
+    cols = train.select_dtypes(include=[float, int]).columns
+
+    train_max = train.select_dtypes(include=[float, int]).max()
+    train_min = train.select_dtypes(include=[float, int]).min()
+    variance = (train_max - train_min)
 
 
+    dont_use_cols = [x for x in cols if variance[x] == 0]
+    train = train.drop(columns=dont_use_cols)
+    test = test.drop(columns=dont_use_cols)
+    train.drop_duplicates(keep=False, inplace=True)
+
+
+
+
+    df = pd.concat([train, test])
+    X = df.iloc[:, :df.shape[1]-1]
+    Y = df.iloc[:, df.shape[1]-1]
+    yes_train = train.loc[train['Failure_status'] == 'yes']
+    no_train = train.loc[train['Failure_status'] == 'no']
+    print(yes_train.shape, no_train.shape)
+
+    X, Y = SMOTE(sampling_strategy="minority").fit_resample(X, Y)
+
+
+    print(Y.value_counts())
+
+
+
+
+    clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
+
+    pred_labels = cross_val_predict(clf, X,Y, cv=5)
+    print(f1_score(Y, pred_labels, average=None))
+    # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
+    print(confusion_matrix(Y, pred_labels))
 
 if __name__ == '__main__':
     main()

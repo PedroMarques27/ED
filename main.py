@@ -80,7 +80,7 @@ def main():
     plot_confusion_matrix(clf, X_test, Y_test)
 '''
 
-''' 
+
 def main():
     train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
     test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
@@ -132,11 +132,13 @@ def main():
     Y_test = test.iloc[:, test.shape[1]-1]
 
 
-
-
-
     clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
     clf.fit(X_train, Y_train)
+
+    original_test = pd.read_csv('dataTopicF/test_FD001_original.txt', sep=' ')
+    original_test.columns = ['unit_id', 'time'] + list(test.columns)
+    print(original_test)
+
     pred_labels = clf.predict(X_test)
     print(clf.score(X_test, Y_test))
     # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
@@ -150,7 +152,8 @@ def main():
 
     plt.show()
     plot_confusion_matrix(clf, X_test, Y_test)
-'''
+
+
 '''
 #Undersampling
 def main():
@@ -299,48 +302,7 @@ def main():
 
 '''
 
-#Cross Validation and Undersampling
-def main():
-    train = pd.read_csv('dataTopicF/train_FD001.csv', sep=';')
-    test = pd.read_csv('dataTopicF/test_FD001.csv', sep=';')
 
-    cols = train.select_dtypes(include=[float, int]).columns
-
-    train_max = train.select_dtypes(include=[float, int]).max()
-    train_min = train.select_dtypes(include=[float, int]).min()
-    variance = (train_max - train_min)
-
-
-    dont_use_cols = [x for x in cols if variance[x] == 0]
-    train = train.drop(columns=dont_use_cols)
-    test = test.drop(columns=dont_use_cols)
-    train.drop_duplicates(keep=False, inplace=True)
-    print(len(dont_use_cols))
-
-
-
-    df = pd.concat([train, test])
-    X = df.iloc[:, :df.shape[1]-1]
-    Y = df.iloc[:, df.shape[1]-1]
-    yes_train = train.loc[train['Failure_status'] == 'yes']
-    no_train = train.loc[train['Failure_status'] == 'no']
-    print(yes_train.shape, no_train.shape)
-
-    X, Y = SMOTE(sampling_strategy="minority").fit_resample(X, Y)
-
-
-    print(Y.value_counts())
-
-
-
-
-    clf = svm.SVC(kernel='rbf', C=1, gamma=0.01, random_state=42)
-
-    pred_labels = cross_val_predict(clf, X,Y, cv=5)
-    print(f1_score(Y, pred_labels, average=None))
-    # {'C': 1, 'gamma': 0.01, 'kernel': 'rbf'}
-    cm = (confusion_matrix(Y, pred_labels))
-    plot_confusion_matrix(cm)
 
 if __name__ == '__main__':
     main()
